@@ -2,12 +2,12 @@ spring:
   application:
     name: dropick-api
 
-  # H2 File-based DB (서버 재시작해도 데이터 유지)
+  # H2 In-Memory DB (Railway 호환)
   datasource:
-    url: jdbc:h2:file:./dropick-db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:dropick;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
-    password:
+    password: ""
 
   h2:
     console:

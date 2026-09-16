@@ -9,14 +9,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                // 로컬 개발 + AWS Amplify 배포 URL 모두 허용
                 .allowedOriginPatterns(
                     "http://localhost:3000",
                     "http://localhost:5173",
                     "http://127.0.0.1:*",
                     "https://*.amplifyapp.com",
-                    "http://*.elasticbeanstalk.com",
-                    "https://*.elasticbeanstalk.com"
+                    "https://*.railway.app",
+                    "*"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
