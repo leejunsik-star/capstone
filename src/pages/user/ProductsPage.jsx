@@ -36,9 +36,10 @@ export const ProductsPage = () => {
         status,
         search,
       });
-      setProducts(data);
+      setProducts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
+      setProducts([]);
     } finally {
       setLoading(false);
     }

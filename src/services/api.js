@@ -26,7 +26,13 @@ api.interceptors.request.use(
 
 // Response Interceptor: Handle auth errors & API responses
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    // If backend returns standard ApiResponse { success, message, data }
+    if (response.data && typeof response.data === 'object' && 'data' in response.data && 'success' in response.data) {
+      return response.data.data;
+    }
+    return response.data;
+  },
   (error) => {
     if (error.response?.status === 401) {
       // Auto logout or trigger refresh token in production

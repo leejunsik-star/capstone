@@ -40,11 +40,12 @@ export const HomePage = () => {
     return () => window.removeEventListener('dropick_products_changed', handleProductsChange);
   }, []);
 
-  const featuredAuctions = products.filter((p) => p.isFeatured && p.status === 'ACTIVE').slice(0, 4);
-  const trendingAuctions = products.filter((p) => p.status === 'ACTIVE').slice(0, 8);
+  const productList = Array.isArray(products) ? products : [];
+  const featuredAuctions = productList.filter((p) => p.isFeatured && p.status === 'ACTIVE').slice(0, 4);
+  const trendingAuctions = productList.filter((p) => p.status === 'ACTIVE').slice(0, 8);
   const filteredProducts = selectedCategory === 'ALL'
     ? trendingAuctions
-    : products.filter((p) => p.category === selectedCategory);
+    : productList.filter((p) => p.category === selectedCategory);
 
   return (
     <div className="space-y-12 pb-16">

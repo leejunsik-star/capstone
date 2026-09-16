@@ -67,7 +67,15 @@ export const productService = {
       return products;
     }
 
-    return await api.get('/products', { params });
+    try {
+      const res = await api.get('/products', { params });
+      if (Array.isArray(res)) return res;
+      if (Array.isArray(res?.data)) return res.data;
+      return [];
+    } catch (e) {
+      console.error('Failed to get products from API', e);
+      return [];
+    }
   },
 
   // Get single product detail by ID
@@ -76,7 +84,13 @@ export const productService = {
       await new Promise((resolve) => setTimeout(resolve, 100));
       return getStoredProductById(id);
     }
-    return await api.get(`/products/${id}`);
+    try {
+      const res = await api.get(`/products/${id}`);
+      return res?.data || res;
+    } catch (e) {
+      console.error('Failed to get product', e);
+      return null;
+    }
   },
 
   // Check inventory and current price before checkout

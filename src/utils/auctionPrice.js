@@ -23,8 +23,10 @@ export const calculateAuctionState = (product, currentTimeMs = Date.now()) => {
     status = 'ACTIVE'
   } = product;
 
-  const startMs = new Date(auctionStartTime).getTime();
-  const endMs = new Date(auctionEndTime).getTime();
+  const rawStart = auctionStartTime || product.createdAt || Date.now();
+  const rawEnd = auctionEndTime || product.eventDate || (new Date(rawStart).getTime() + 7 * 24 * 3600 * 1000);
+  const startMs = isNaN(new Date(rawStart).getTime()) ? Date.now() : new Date(rawStart).getTime();
+  const endMs = isNaN(new Date(rawEnd).getTime()) ? startMs + 7 * 24 * 3600 * 1000 : new Date(rawEnd).getTime();
   const dropIntervalMs = (dropInterval || 600) * 1000;
 
   // If already sold or manually marked

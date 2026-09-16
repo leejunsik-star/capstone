@@ -34,10 +34,14 @@ export const authService = {
 
     // Real Spring Boot REST API
     const res = await api.post('/auth/login', { email, password });
-    if (res.token) {
-      localStorage.setItem('dropick_jwt_token', res.token);
+    const payload = res?.token ? res : (res?.data || res);
+    if (payload?.token) {
+      localStorage.setItem('dropick_jwt_token', payload.token);
     }
-    return res;
+    if (payload?.user) {
+      localStorage.setItem('dropick_current_user', JSON.stringify(payload.user));
+    }
+    return payload;
   },
 
   // Signup
@@ -60,11 +64,23 @@ export const authService = {
       return { user: newUser, token: 'mock_jwt_token_' + newUser.id };
     }
 
-    return await api.post('/auth/signup', userData);
+    const res = await api.post('/auth/signup', userData);
+    const payload = res?.token ? res : (res?.data || res);
+    if (payload?.token) {
+      localStorage.setItem('dropick_jwt_token', payload.token);
+    }
+    if (payload?.user) {
+      localStorage.setItem('dropick_current_user', JSON.stringify(payload.user));
+    }
+    return payload;
   },
 
   // Get Current Logged-in User
   getCurrentUser() {
+    try {
+      const saved = localStorage.getItem('dropick_current_user');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
     if (USE_MOCK_API) {
       return getStoredCurrentUser();
     }
