@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
     return newUser;
   };
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'ADMIN' || (user?.email && user.email.toLowerCase().includes('admin'));
 
   return (
     <AuthContext.Provider

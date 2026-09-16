@@ -1,8 +1,8 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Outlet, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Outlet, useLocation, Link } from 'react-router-dom';
 
 // Context Providers
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { SimulationProvider } from './context/SimulationContext';
@@ -59,7 +59,29 @@ const UserLayout = () => {
 
 // Admin Layout wrapper
 const AdminLayout = () => {
+  const { user, isAdmin } = useAuth();
   const location = useLocation();
+
+  if (!user || !isAdmin) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
+        <div className="w-20 h-20 bg-rose-100 text-rose-600 rounded-3xl flex items-center justify-center mb-5 text-3xl shadow-xs">
+          🔒
+        </div>
+        <h2 className="text-xl sm:text-2xl font-black text-gray-900 mb-2">관리자 전용 페이지입니다</h2>
+        <p className="text-xs sm:text-sm text-gray-500 max-w-sm mb-6 leading-relaxed">
+          일반 회원은 관리자 센터에 접근할 수 없습니다.<br />
+          플랫폼 운영자(Admin) 권한을 가진 계정으로 로그인해 주세요.
+        </p>
+        <Link
+          to="/login"
+          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-purple-600/20"
+        >
+          관리자 계정으로 로그인하기
+        </Link>
+      </div>
+    );
+  }
 
   const getPageTitle = (pathname) => {
     if (pathname === '/admin') return '관리자 운영 대시보드';
