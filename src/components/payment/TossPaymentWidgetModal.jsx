@@ -4,7 +4,10 @@ import { X, Loader2, ShieldCheck, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { USE_MOCK_API } from '../../services/api';
 
-const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
+const rawKey = import.meta.env.VITE_TOSS_CLIENT_KEY;
+const clientKey = (rawKey && !rawKey.includes('여기에') && rawKey.startsWith('test_ck_'))
+  ? rawKey
+  : 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
 
 export const TossPaymentWidgetModal = ({
   isOpen,
