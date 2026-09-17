@@ -32,6 +32,22 @@ public class ProductController {
         }
     }
 
+    @GetMapping("/{id}/verify")
+    public ApiResponse<java.util.Map<String, Object>> verifyProduct(@PathVariable Long id) {
+        com.dropick.api.domain.product.Product product = productService.getProductEntity(id);
+        if (product == null) {
+            return ApiResponse.error("존재하지 않는 상품입니다.");
+        }
+        if (product.getStatus() == com.dropick.api.domain.product.Product.ProductStatus.SOLD) {
+            return ApiResponse.error("이미 판매 완료된 상품입니다.");
+        }
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        map.put("available", true);
+        map.put("currentPrice", productService.calculateCurrentPrice(product));
+        map.put("status", product.getStatus().name());
+        return ApiResponse.success("구매 가능", map);
+    }
+
     @PostMapping
     public ApiResponse<ProductResponse> createProduct(@RequestBody ProductRequest.Create request, HttpServletRequest httpRequest) {
         String token = httpRequest.getHeader("Authorization");

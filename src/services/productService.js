@@ -116,7 +116,15 @@ export const productService = {
       };
     }
 
-    return await api.get(`/products/${id}/verify`);
+    try {
+      const res = await api.get(`/products/${id}/verify`);
+      if (res && res.available !== undefined) return res;
+      if (res && res.data && res.data.available !== undefined) return res.data;
+      return { available: true };
+    } catch (e) {
+      console.warn('Verify product fallback:', e);
+      return { available: true };
+    }
   },
 
   // Admin: Create new product

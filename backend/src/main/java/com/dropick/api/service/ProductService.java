@@ -51,16 +51,22 @@ public class ProductService {
         return new ProductResponse(product, calculateCurrentPrice(product));
     }
 
+    public Product getProductEntity(Long id) {
+        return productRepository.findById(id).orElse(null);
+    }
+
     // 더치옥션 실시간 가격 계산 로직 (서버 사이드)
-    private int calculateCurrentPrice(Product product) {
+    public int calculateCurrentPrice(Product product) {
+        if (product == null) return 0;
         if (product.getStatus() == Product.ProductStatus.SOLD) {
             return product.getMinPrice(); // 또는 낙찰가 반환
         }
         
-        long secondsElapsed = Duration.between(product.getCreatedAt(), LocalDateTime.now()).getSeconds();
+        long secondsElapsed = Duration.between(product.getCreatedAt() != null ? product.getCreatedAt() : LocalDateTime.now(), LocalDateTime.now()).getSeconds();
         if (secondsElapsed < 0) return product.getStartPrice();
         
-        long dropCount = secondsElapsed / product.getDropInterval();
+        int interval = product.getDropInterval() > 0 ? product.getDropInterval() : 60;
+        long dropCount = secondsElapsed / interval;
         int priceDrop = (int) (dropCount * product.getDropAmount());
         int currentPrice = product.getStartPrice() - priceDrop;
         
