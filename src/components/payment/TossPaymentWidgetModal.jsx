@@ -9,82 +9,79 @@ const clientKey = (rawKey && !rawKey.includes('여기에') && rawKey.startsWith(
   ? rawKey
   : 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
 
-export const TossPaymentWidgetModal = ({
-  isOpen,
-  onClose,
+// 실제로 렌더링되는 내부 컴포넌트 (항상 마운트됨 → DOM에 #payment-widget 존재 보장)
+const TossPaymentWidgetInner = ({
   orderData,
+  onClose,
   onPaymentSuccess,
   onPaymentFail,
+  user,
 }) => {
-  const { user } = useAuth();
   const [isWidgetReady, setIsWidgetReady] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const paymentWidgetRef = useRef(null);
   const paymentMethodsWidgetRef = useRef(null);
 
-  // Initialize and render payment widget ONCE when modal opens
+  // DOM이 확실히 마운트된 후 위젯 초기화
   useEffect(() => {
-    if (!isOpen || !orderData) {
-      setIsWidgetReady(false);
-      paymentWidgetRef.current = null;
-      paymentMethodsWidgetRef.current = null;
-      return;
-    }
-
     let isSubscribed = true;
     setIsWidgetReady(false);
 
     const initWidget = async () => {
       try {
+        // DOM이 그려진 이후 실행 보장 (React paint 이후)
+        await new Promise((r) => setTimeout(r, 100));
+        if (!isSubscribed) return;
+
         const customerKey = user?.id ? `user_${user.id}` : ANONYMOUS;
         const widget = await loadPaymentWidget(clientKey, customerKey);
 
         if (!isSubscribed) return;
         paymentWidgetRef.current = widget;
 
-        // Render payment methods (visible container, no variantKey restriction)
+        // #payment-widget div가 DOM에 실제로 존재하는지 확인
+        const container = document.getElementById('payment-widget');
+        if (!container) {
+          console.error('❌ #payment-widget 컨테이너를 찾을 수 없습니다');
+          return;
+        }
+
         const methodsWidget = widget.renderPaymentMethods(
           '#payment-widget',
           { value: orderData.paidPrice }
         );
         paymentMethodsWidgetRef.current = methodsWidget;
 
-        // Render agreement
         widget.renderAgreement('#agreement');
 
-        // Listen for ready event from Toss
         if (methodsWidget && typeof methodsWidget.on === 'function') {
           methodsWidget.on('ready', () => {
-            if (isSubscribed) {
-              setIsWidgetReady(true);
-            }
+            if (isSubscribed) setIsWidgetReady(true);
           });
         }
 
-        // Fallback safety: enable ready state after 2 seconds
+        // 3초 fallback
         setTimeout(() => {
-          if (isSubscribed) {
-            setIsWidgetReady(true);
-          }
-        }, 2000);
+          if (isSubscribed) setIsWidgetReady(true);
+        }, 3000);
 
       } catch (error) {
-        console.error("토스 결제위젯 로딩 에러:", error);
-        if (isSubscribed) {
-          setIsWidgetReady(true);
-        }
+        console.error('토스 결제위젯 로딩 에러:', error);
+        if (isSubscribed) setIsWidgetReady(true);
       }
     };
 
     initWidget();
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, [isOpen, orderData?.id]);
+    return () => { isSubscribed = false; };
+  }, [orderData?.id]);
 
   const handlePaymentRequest = async () => {
     if (isProcessing) return;
+
+    if (!isWidgetReady && !USE_MOCK_API) {
+      alert('토스 결제창이 아직 준비 중입니다. 잠시 후 다시 눌러주세요.');
+      return;
+    }
 
     if (!paymentWidgetRef.current && !USE_MOCK_API) {
       alert('토스 결제 모듈을 불러오는 중입니다. 1~2초 후 다시 시도해주세요.');
@@ -96,14 +93,13 @@ export const TossPaymentWidgetModal = ({
     try {
       if (USE_MOCK_API) {
         await new Promise((resolve) => setTimeout(resolve, 800));
-        const paymentResult = {
+        onPaymentSuccess({
           paymentKey: `toss_pay_key_${Date.now()}_mock`,
           orderId: orderData.id,
           amount: orderData.paidPrice,
           method: '간편결제',
           status: 'PAID',
-        };
-        onPaymentSuccess(paymentResult);
+        });
       } else {
         await paymentWidgetRef.current.requestPayment({
           orderId: orderData.id,
@@ -118,28 +114,21 @@ export const TossPaymentWidgetModal = ({
     } catch (error) {
       console.error('Payment request error:', error);
       setIsProcessing(false);
-      if (error.message && error.message.includes('렌더링')) {
-        alert('토스 결제창이 렌더링 중입니다. 1초 뒤 다시 눌러주세요.');
-      } else {
-        onPaymentFail(error.message || '결제 진행 중 오류가 발생했습니다.');
-      }
+      onPaymentFail(error.message || '결제 진행 중 오류가 발생했습니다.');
     }
   };
 
   const handleQuickMockPayment = async () => {
     setIsProcessing(true);
     await new Promise((resolve) => setTimeout(resolve, 500));
-    const paymentResult = {
+    onPaymentSuccess({
       paymentKey: `toss_simulated_${Date.now()}`,
       orderId: orderData.id,
       amount: orderData.paidPrice,
       method: '토스페이(테스트 승인)',
       status: 'PAID',
-    };
-    onPaymentSuccess(paymentResult);
+    });
   };
-
-  if (!isOpen || !orderData) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-fadeIn overflow-y-auto">
@@ -159,23 +148,33 @@ export const TossPaymentWidgetModal = ({
 
         {/* Toss Payment UI Areas */}
         <div className="p-4 max-h-[70vh] overflow-y-auto">
-          {/* 토스 결제위젯이 마운트될 DOM 요소 (절대 hidden 금지) */}
-          <div id="payment-widget" className="w-full min-h-[260px]" />
-          {/* 토스 약관동의가 마운트될 DOM 요소 */}
-          <div id="agreement" className="w-full min-h-[90px] mt-2" />
+          {!isWidgetReady && (
+            <div className="flex flex-col items-center justify-center min-h-[260px] gap-3 text-gray-400">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              <p className="text-sm">결제 수단을 불러오는 중...</p>
+            </div>
+          )}
+          {/* 항상 DOM에 존재해야 함 - visibility로 토글 */}
+          <div id="payment-widget" style={{ display: isWidgetReady ? 'block' : 'none' }} className="w-full min-h-[260px]" />
+          <div id="agreement" style={{ display: isWidgetReady ? 'block' : 'none' }} className="w-full min-h-[90px] mt-2" />
         </div>
 
         {/* Submit Button */}
         <div className="p-5 border-t border-gray-100 bg-gray-50 space-y-2.5">
           <button
             onClick={handlePaymentRequest}
-            disabled={isProcessing}
+            disabled={isProcessing || !isWidgetReady}
             className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
           >
             {isProcessing ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>결제창 연결 중...</span>
+              </>
+            ) : !isWidgetReady ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>결제 수단 로딩 중...</span>
               </>
             ) : (
               `${orderData.paidPrice.toLocaleString()}원 결제하기`
@@ -197,6 +196,29 @@ export const TossPaymentWidgetModal = ({
         </div>
       </div>
     </div>
+  );
+};
+
+// 외부 컴포넌트: isOpen/orderData 가드 역할만 수행
+export const TossPaymentWidgetModal = ({
+  isOpen,
+  onClose,
+  orderData,
+  onPaymentSuccess,
+  onPaymentFail,
+}) => {
+  const { user } = useAuth();
+
+  if (!isOpen || !orderData) return null;
+
+  return (
+    <TossPaymentWidgetInner
+      orderData={orderData}
+      onClose={onClose}
+      onPaymentSuccess={onPaymentSuccess}
+      onPaymentFail={onPaymentFail}
+      user={user}
+    />
   );
 };
 
