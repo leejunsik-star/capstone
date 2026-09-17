@@ -54,5 +54,23 @@ export const orderService = {
       return updateStoredOrderStatus(orderId, 'REFUNDED');
     }
     return await api.post(`/orders/${orderId}/cancel`, { reason });
+  },
+
+  // Confirm payment (after payment widget approval)
+  async confirmPayment({ paymentKey, orderId, amount }) {
+    if (USE_MOCK_API) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return updateStoredOrderStatus(orderId, 'PAID');
+    }
+    return await api.post('/orders/payments/confirm', { paymentKey, orderId, amount });
+  },
+
+  // Confirm receipt (buyer confirms they received the ticket)
+  async confirmReceipt(orderId) {
+    if (USE_MOCK_API) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return updateStoredOrderStatus(orderId, 'RECEIPT_CONFIRMED');
+    }
+    return await api.post(`/orders/${orderId}/confirm-receipt`);
   }
 };
