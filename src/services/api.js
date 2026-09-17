@@ -28,17 +28,20 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     // If backend returns standard ApiResponse { success, message, data }
-    if (response.data && typeof response.data === 'object' && 'data' in response.data && 'success' in response.data) {
-      return response.data.data;
+    if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+      if (response.data.success === false) {
+        return Promise.reject(new Error(response.data.message || '요청 처리에 실패했습니다.'));
+      }
+      return response.data.data !== undefined ? response.data.data : response.data;
     }
     return response.data;
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Auto logout or trigger refresh token in production
       console.warn('Unauthorized request - session expired');
     }
-    return Promise.reject(error.response?.data || error);
+    const msg = error.response?.data?.message || error.message || '네트워크 통신 중 오류가 발생했습니다.';
+    return Promise.reject(new Error(msg));
   }
 );
 

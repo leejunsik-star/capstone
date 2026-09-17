@@ -19,7 +19,9 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     try {
       const res = await authService.login(email, password);
-      setUser(res.user);
+      if (res && res.user) {
+        setUser(res.user);
+      }
       return res;
     } finally {
       setIsLoading(false);
@@ -30,7 +32,9 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     try {
       const res = await authService.signup(userData);
-      setUser(res.user);
+      if (res && res.user) {
+        setUser(res.user);
+      }
       return res;
     } finally {
       setIsLoading(false);

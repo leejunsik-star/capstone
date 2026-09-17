@@ -35,10 +35,13 @@ export const authService = {
     // Real Spring Boot REST API
     const res = await api.post('/auth/login', { email, password });
     const payload = res?.token ? res : (res?.data || res);
-    if (payload?.token) {
+    if (!payload) {
+      throw new Error('로그인 처리 중 문제가 발생했습니다.');
+    }
+    if (payload.token) {
       localStorage.setItem('dropick_jwt_token', payload.token);
     }
-    if (payload?.user) {
+    if (payload.user) {
       localStorage.setItem('dropick_current_user', JSON.stringify(payload.user));
     }
     return payload;
@@ -53,7 +56,7 @@ export const authService = {
         name: userData.name,
         email: userData.email,
         phone: userData.phone || '010-1234-5678',
-        role: 'USER',
+        role: userData.email.includes('admin') ? 'ADMIN' : 'USER',
         joinDate: new Date().toISOString().slice(0, 10),
         orderCount: 0,
         totalSpent: 0,
@@ -66,10 +69,13 @@ export const authService = {
 
     const res = await api.post('/auth/signup', userData);
     const payload = res?.token ? res : (res?.data || res);
-    if (payload?.token) {
+    if (!payload) {
+      throw new Error('회원가입 처리 중 문제가 발생했습니다.');
+    }
+    if (payload.token) {
       localStorage.setItem('dropick_jwt_token', payload.token);
     }
-    if (payload?.user) {
+    if (payload.user) {
       localStorage.setItem('dropick_current_user', JSON.stringify(payload.user));
     }
     return payload;
