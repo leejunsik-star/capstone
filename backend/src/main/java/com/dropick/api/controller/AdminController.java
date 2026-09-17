@@ -92,7 +92,7 @@ public class AdminController {
                     m.put("id", u.getId());
                     m.put("name", u.getName());
                     m.put("email", u.getEmail());
-                    m.put("role", u.getRole());
+                    m.put("role", u.getEmail().contains("admin") ? "ADMIN" : "USER");
                     return m;
                 })
                 .collect(Collectors.toList());
