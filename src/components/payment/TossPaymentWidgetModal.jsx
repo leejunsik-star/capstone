@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { loadPaymentWidget } from '@tosspayments/payment-widget-sdk';
-import { X, Loader2, ShieldCheck } from 'lucide-react';
+import { loadPaymentWidget, ANONYMOUS } from '@tosspayments/payment-widget-sdk';
+import { X, Loader2, ShieldCheck, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { USE_MOCK_API } from '../../services/api';
 
@@ -33,25 +33,21 @@ export const TossPaymentWidgetModal = ({
 
     const initWidget = async () => {
       try {
-        const customerKey = user?.id ? `user_${user.id}` : `ANON_${orderData.id.slice(-8)}`;
+        const customerKey = user?.id ? `user_${user.id}` : ANONYMOUS;
         const widget = await loadPaymentWidget(clientKey, customerKey);
 
         if (!isSubscribed) return;
         paymentWidgetRef.current = widget;
 
-        // Render payment methods
+        // Render payment methods (visible container, no variantKey restriction)
         const methodsWidget = widget.renderPaymentMethods(
           '#payment-widget',
-          { value: orderData.paidPrice },
-          { variantKey: 'DEFAULT' }
+          { value: orderData.paidPrice }
         );
         paymentMethodsWidgetRef.current = methodsWidget;
 
         // Render agreement
-        widget.renderAgreement(
-          '#agreement',
-          { variantKey: 'AGREEMENT' }
-        );
+        widget.renderAgreement('#agreement');
 
         // Listen for ready event from Toss
         if (methodsWidget && typeof methodsWidget.on === 'function') {
@@ -62,12 +58,12 @@ export const TossPaymentWidgetModal = ({
           });
         }
 
-        // Fallback: If ready event doesn't fire within 2.5s, enable ready state
+        // Fallback safety: enable ready state after 2 seconds
         setTimeout(() => {
           if (isSubscribed) {
             setIsWidgetReady(true);
           }
-        }, 2500);
+        }, 2000);
 
       } catch (error) {
         console.error("토스 결제위젯 로딩 에러:", error);
@@ -88,7 +84,7 @@ export const TossPaymentWidgetModal = ({
     if (isProcessing) return;
 
     if (!paymentWidgetRef.current && !USE_MOCK_API) {
-      alert('결제 모듈을 불러오는 중입니다. 잠시만 기다려주세요.');
+      alert('토스 결제 모듈을 불러오는 중입니다. 1~2초 후 다시 시도해주세요.');
       return;
     }
 
@@ -119,8 +115,25 @@ export const TossPaymentWidgetModal = ({
     } catch (error) {
       console.error('Payment request error:', error);
       setIsProcessing(false);
-      onPaymentFail(error.message || '결제 진행 중 오류가 발생했습니다.');
+      if (error.message && error.message.includes('렌더링')) {
+        alert('토스 결제창이 렌더링 중입니다. 1초 뒤 다시 눌러주세요.');
+      } else {
+        onPaymentFail(error.message || '결제 진행 중 오류가 발생했습니다.');
+      }
     }
+  };
+
+  const handleQuickMockPayment = async () => {
+    setIsProcessing(true);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const paymentResult = {
+      paymentKey: `toss_simulated_${Date.now()}`,
+      orderId: orderData.id,
+      amount: orderData.paidPrice,
+      method: '토스페이(테스트 승인)',
+      status: 'PAID',
+    };
+    onPaymentSuccess(paymentResult);
   };
 
   if (!isOpen || !orderData) return null;
@@ -143,43 +156,41 @@ export const TossPaymentWidgetModal = ({
 
         {/* Toss Payment UI Areas */}
         <div className="p-4 max-h-[70vh] overflow-y-auto">
-          {/* Loading state indicator */}
-          {!isWidgetReady && (
-            <div className="py-12 text-center space-y-3">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
-              <p className="text-xs font-semibold text-gray-500">
-                토스페이먼츠 보안 결제창을 준비하고 있습니다...
-              </p>
-            </div>
-          )}
-
-          {/* 토스 결제위젯이 마운트될 DOM 요소 */}
-          <div id="payment-widget" className={`w-full ${!isWidgetReady ? 'hidden' : ''}`} />
+          {/* 토스 결제위젯이 마운트될 DOM 요소 (절대 hidden 금지) */}
+          <div id="payment-widget" className="w-full min-h-[260px]" />
           {/* 토스 약관동의가 마운트될 DOM 요소 */}
-          <div id="agreement" className={`w-full mt-2 ${!isWidgetReady ? 'hidden' : ''}`} />
+          <div id="agreement" className="w-full min-h-[90px] mt-2" />
         </div>
 
         {/* Submit Button */}
-        <div className="p-5 border-t border-gray-100 bg-gray-50">
+        <div className="p-5 border-t border-gray-100 bg-gray-50 space-y-2.5">
           <button
             onClick={handlePaymentRequest}
-            disabled={!isWidgetReady || isProcessing}
+            disabled={isProcessing}
             className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
           >
             {isProcessing ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>결제창 여는 중...</span>
-              </>
-            ) : !isWidgetReady ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>결제 UI 로딩 중...</span>
+                <span>결제창 연결 중...</span>
               </>
             ) : (
               `${orderData.paidPrice.toLocaleString()}원 결제하기`
             )}
           </button>
+
+          {/* 시연 및 테스트용 즉시 승인 백업 버튼 */}
+          <div className="text-center pt-1">
+            <button
+              type="button"
+              onClick={handleQuickMockPayment}
+              disabled={isProcessing}
+              className="text-[11px] text-gray-400 hover:text-purple-600 font-medium transition cursor-pointer flex items-center justify-center gap-1 mx-auto"
+            >
+              <Zap className="w-3 h-3 text-amber-500" />
+              <span>시연용 테스트 간편 결제 (즉시 승인)</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
