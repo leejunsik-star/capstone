@@ -29,6 +29,7 @@ export const CheckoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [lockedOrderData, setLockedOrderData] = useState(null);
 
   // Buyer details form
   const [buyerName, setBuyerName] = useState(user?.name || '김태극');
@@ -83,7 +84,13 @@ export const CheckoutPage = () => {
         return;
       }
 
-      // Open Toss Payments Widget Modal
+      // Lock order data snapshot for Toss Payments
+      const lockedData = {
+        id: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        productTitle: product.title,
+        paidPrice: currentPrice,
+      };
+      setLockedOrderData(lockedData);
       setIsPaymentModalOpen(true);
     } catch (err) {
       alert(err.message || '구매 가능 여부 확인 중 오류가 발생했습니다.');
@@ -94,6 +101,7 @@ export const CheckoutPage = () => {
 
   const handlePaymentSuccess = async (paymentResult) => {
     try {
+      const finalPrice = lockedOrderData?.paidPrice || currentPrice;
       const orderPayload = {
         productId: product.id,
         productTitle: product.title,
@@ -103,9 +111,9 @@ export const CheckoutPage = () => {
         seat: product.seat,
         seatGrade: product.seatGrade,
         imageUrl: product.imageUrl,
-        paidPrice: currentPrice,
+        paidPrice: finalPrice,
         startPrice: product.startPrice,
-        savedPrice: product.startPrice - currentPrice,
+        savedPrice: product.startPrice - finalPrice,
         buyerName,
         buyerPhone,
         buyerEmail,
@@ -125,12 +133,6 @@ export const CheckoutPage = () => {
   const handlePaymentFail = (errorMsg) => {
     setIsPaymentModalOpen(false);
     navigate(`/payment/fail?reason=${encodeURIComponent(errorMsg)}`);
-  };
-
-  const orderDataForWidget = {
-    id: `ORD-${Date.now()}`,
-    productTitle: product.title,
-    paidPrice: currentPrice,
   };
 
   return (
@@ -334,7 +336,7 @@ export const CheckoutPage = () => {
       <TossPaymentWidgetModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
-        orderData={orderDataForWidget}
+        orderData={lockedOrderData}
         onPaymentSuccess={handlePaymentSuccess}
         onPaymentFail={handlePaymentFail}
       />
