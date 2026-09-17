@@ -33,7 +33,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configure(http))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/products/**", "/api/orders/**", "/h2-console/**", "/error").permitAll()
+                .requestMatchers("/api/auth/**", "/api/products/**", "/api/admin/products/**", "/api/orders/**", "/h2-console/**", "/error").permitAll()
                 .anyRequest().authenticated()
             )
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))

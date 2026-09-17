@@ -116,10 +116,12 @@ export const SellTicketPage = () => {
         eventDate: new Date(formData.eventDate).toISOString(),
       });
 
-      setCreatedId(saved.id);
+      window.dispatchEvent(new Event('dropick_products_changed'));
+      setCreatedId(saved?.id || saved?.data?.id || 1);
       setIsSuccess(true);
     } catch (err) {
-      alert('티켓 판매 등록 중 오류가 발생했습니다.');
+      console.error('Ticket register error:', err);
+      alert(err.message || '티켓 판매 등록 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }

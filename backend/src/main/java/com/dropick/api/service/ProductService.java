@@ -18,21 +18,52 @@ public class ProductService {
 
     private final ProductRepository productRepository;
 
+    private LocalDateTime parseDate(String dateStr, LocalDateTime fallback) {
+        if (dateStr == null || dateStr.isBlank()) return fallback;
+        try {
+            if (dateStr.endsWith("Z")) {
+                return java.time.Instant.parse(dateStr).atZone(java.time.ZoneId.of("Asia/Seoul")).toLocalDateTime();
+            }
+            if (dateStr.length() == 16) {
+                return LocalDateTime.parse(dateStr + ":00");
+            }
+            return LocalDateTime.parse(dateStr.substring(0, Math.min(dateStr.length(), 19)));
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+
     @Transactional
     public ProductResponse createProduct(ProductRequest.Create request, Long sellerId) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime eventDate = parseDate(request.getEventDate(), now.plusDays(7));
+        LocalDateTime auctionStartTime = parseDate(request.getAuctionStartTime(), now);
+        LocalDateTime auctionEndTime = parseDate(request.getAuctionEndTime(), now.plusDays(2));
+
+        Long actualSellerId = sellerId != null ? sellerId : (request.getSellerId() != null ? request.getSellerId() : 1L);
+
         Product product = Product.builder()
                 .title(request.getTitle())
-                .category(request.getCategory())
-                .venue(request.getVenue())
-                .seat(request.getSeat())
-                .eventDate(request.getEventDate())
+                .category(request.getCategory() != null ? request.getCategory() : "CONCERT")
+                .venue(request.getVenue() != null ? request.getVenue() : "미정")
+                .seat(request.getSeat() != null ? request.getSeat() : "자유석")
+                .seatGrade(request.getSeatGrade())
+                .eventDate(eventDate)
                 .startPrice(request.getStartPrice())
                 .minPrice(request.getMinPrice())
-                .dropInterval(request.getDropInterval())
-                .dropAmount(request.getDropAmount())
-                .imageUrl(request.getImageUrl())
-                .sellerId(sellerId)
-                .status(Product.ProductStatus.ACTIVE) // 바로 진행으로 가정
+                .dropInterval(request.getDropInterval() > 0 ? request.getDropInterval() : 600)
+                .dropAmount(request.getDropAmount() > 0 ? request.getDropAmount() : 5000)
+                .imageUrl(request.getImageUrl() != null && !request.getImageUrl().isBlank() 
+                    ? request.getImageUrl() 
+                    : "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800")
+                .sellerId(actualSellerId)
+                .sellerName(request.getSellerName() != null ? request.getSellerName() : "티켓판매자")
+                .sellerEmail(request.getSellerEmail() != null ? request.getSellerEmail() : "seller@dropick.com")
+                .status(Product.ProductStatus.ACTIVE)
+                .auctionStartTime(auctionStartTime)
+                .auctionEndTime(auctionEndTime)
+                .remainingSeats(request.getRemainingSeats() != null ? request.getRemainingSeats() : 1)
+                .description(request.getDescription())
                 .build();
         
         Product saved = productRepository.save(product);
@@ -59,7 +90,7 @@ public class ProductService {
     public int calculateCurrentPrice(Product product) {
         if (product == null) return 0;
         if (product.getStatus() == Product.ProductStatus.SOLD) {
-            return product.getMinPrice(); // 또는 낙찰가 반환
+            return product.getMinPrice();
         }
         
         long secondsElapsed = Duration.between(product.getCreatedAt() != null ? product.getCreatedAt() : LocalDateTime.now(), LocalDateTime.now()).getSeconds();

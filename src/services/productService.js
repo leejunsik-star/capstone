@@ -127,13 +127,14 @@ export const productService = {
     }
   },
 
-  // Admin: Create new product
+  // Create new product
   async createProduct(productData) {
     if (USE_MOCK_API) {
       await new Promise((resolve) => setTimeout(resolve, 300));
       return saveStoredProduct(productData);
     }
-    return await api.post('/admin/products', productData);
+    const res = await api.post('/products', productData);
+    return res?.data || res;
   },
 
   // Admin: Update product
