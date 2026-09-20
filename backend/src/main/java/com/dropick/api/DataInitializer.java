@@ -58,20 +58,32 @@ public class DataInitializer implements CommandLineRunner {
             {"2026 FC서울 vs 전북 현대 K리그1 슈퍼매치", "SPORTS", "서울월드컵경기장", "홈 응원석 J구역 22열 11번", LocalDateTime.now().plusDays(4), 55000, 20000, 45, 2000, "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=600"},
         };
 
+        LocalDateTime targetEndTime = LocalDateTime.now().plusDays(1).withHour(17).withMinute(0).withSecond(0);
+        long totalSeconds = java.time.Duration.between(LocalDateTime.now(), targetEndTime).getSeconds();
+        if (totalSeconds <= 0) totalSeconds = 86400; // 안전장치 (24시간)
+
         for (Object[] p : products) {
+            int startPrice = (Integer) p[5];
+            int minPrice = (Integer) p[6];
+            int dropAmount = (Integer) p[8];
+            int dropsNeeded = (startPrice - minPrice) / dropAmount;
+            int dynamicDropInterval = (int) (totalSeconds / (dropsNeeded > 0 ? dropsNeeded : 1));
+
             productRepository.save(Product.builder()
                     .title((String) p[0])
                     .category((String) p[1])
                     .venue((String) p[2])
                     .seat((String) p[3])
                     .eventDate((LocalDateTime) p[4])
-                    .startPrice((Integer) p[5])
-                    .minPrice((Integer) p[6])
-                    .dropInterval((Integer) p[7])
-                    .dropAmount((Integer) p[8])
+                    .startPrice(startPrice)
+                    .minPrice(minPrice)
+                    .dropInterval(dynamicDropInterval)
+                    .dropAmount(dropAmount)
                     .imageUrl((String) p[9])
                     .sellerId(seller.getId())
                     .status(Product.ProductStatus.ACTIVE)
+                    .auctionStartTime(LocalDateTime.now())
+                    .auctionEndTime(targetEndTime)
                     .build());
         }
 
