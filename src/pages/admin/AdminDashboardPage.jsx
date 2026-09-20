@@ -31,12 +31,9 @@ export const AdminDashboardPage = () => {
     try {
       const data = await adminService.getDashboardKPIs();
       setMetrics(data);
-
-      const settlementData = await settlementService.getSettlements();
-      setSettlements(Array.isArray(settlementData) ? settlementData : []);
     } catch (err) {
       console.error('Failed to load admin metrics', err);
-      // API 없어도 기본값으로 렌더링
+      // API 오류 시 안전한 기본값
       setMetrics({
         todaySales: 0,
         todayOrdersCount: 0,
@@ -47,6 +44,14 @@ export const AdminDashboardPage = () => {
         recentOrders: [],
         activeAuctions: [],
       });
+    }
+
+    try {
+      const settlementData = await settlementService.getSettlements();
+      setSettlements(Array.isArray(settlementData) ? settlementData : []);
+    } catch (err) {
+      console.error('Failed to load settlements', err);
+      setSettlements([]);
     } finally {
       setLoading(false);
     }

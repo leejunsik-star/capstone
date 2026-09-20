@@ -15,19 +15,18 @@ export const adminService = {
       const users = getStoredUsers();
 
       const activeProducts = products.filter((p) => p.status === 'ACTIVE');
-      const soldProducts = products.filter((p) => p.status === 'SOLD');
-      const paidOrders = orders.filter((o) => o.status === 'PAID');
+      const validOrders = orders.filter((o) => o.status === 'PAID' || o.status === 'RECEIPT_CONFIRMED');
 
-      const todaySales = paidOrders.reduce((sum, o) => sum + (o.paidPrice || 0), 0) + 12450000;
-      const todayOrdersCount = paidOrders.length + 228;
+      const todaySales = validOrders.reduce((sum, o) => sum + (o.paidPrice || 0), 0);
+      const todayOrdersCount = orders.length;
 
       return {
         todaySales,
         todayOrdersCount,
-        activeAuctionsCount: activeProducts.length + 20,
-        endingSoonCount: 6,
-        soldTicketsCount: soldProducts.length + 142,
-        totalMembersCount: users.length + 3236,
+        activeAuctionsCount: activeProducts.length,
+        endingSoonCount: activeProducts.filter(p => p.auctionEndTime && new Date(p.auctionEndTime) < new Date(Date.now() + 24*3600*1000)).length,
+        soldTicketsCount: validOrders.length,
+        totalMembersCount: users.length,
         recentOrders: orders.slice(0, 6),
         activeAuctions: activeProducts.slice(0, 5),
       };

@@ -75,6 +75,12 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
         order.updateStatus(Order.OrderStatus.REFUNDED);
+        if (order.getProductId() != null) {
+            productRepository.findById(order.getProductId()).ifPresent(p -> {
+                p.updateStatus(Product.ProductStatus.ACTIVE);
+                productRepository.save(p);
+            });
+        }
         return new OrderResponse(orderRepository.save(order));
     }
 
