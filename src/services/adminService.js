@@ -48,5 +48,27 @@ export const adminService = {
       return users;
     }
     return await api.get('/admin/users', { params });
+  },
+
+  // Get All Orders for Admin
+  async getAllOrders(params = {}) {
+    if (USE_MOCK_API) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      let orders = getStoredOrders();
+      if (params.status && params.status !== 'ALL') {
+        orders = orders.filter((o) => o.status === params.status);
+      }
+      if (params.search) {
+        const q = params.search.toLowerCase();
+        orders = orders.filter(
+          (o) =>
+            o.id.toLowerCase().includes(q) ||
+            o.productTitle.toLowerCase().includes(q) ||
+            (o.buyerName && o.buyerName.toLowerCase().includes(q))
+        );
+      }
+      return orders;
+    }
+    return await api.get('/admin/orders', { params });
   }
 };

@@ -98,4 +98,18 @@ public class AdminController {
                 .collect(Collectors.toList());
         return ApiResponse.success("회원 목록 조회 성공", users);
     }
+
+    @GetMapping("/orders")
+    public ApiResponse<List<Order>> getAllOrders() {
+        return ApiResponse.success("전체 주문 목록 조회 성공", orderRepository.findAll());
+    }
+
+    @DeleteMapping("/products/{id}")
+    public ApiResponse<Void> deleteProduct(@PathVariable Long id) {
+        if (!productRepository.existsById(id)) {
+            return ApiResponse.error("존재하지 않는 상품입니다.");
+        }
+        productRepository.deleteById(id);
+        return ApiResponse.success("상품이 성공적으로 삭제되었습니다.", null);
+    }
 }

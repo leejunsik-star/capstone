@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { adminService } from '../../services/adminService';
 import { orderService } from '../../services/orderService';
 import { OrderStatusBadge } from '../../components/common/StatusBadge';
 import OrderDetailModal from '../../components/admin/OrderDetailModal';
@@ -24,7 +25,7 @@ export const AdminOrdersPage = () => {
   const loadOrders = async () => {
     setLoading(true);
     try {
-      const data = await orderService.getOrders();
+      const data = await adminService.getAllOrders();
       setOrders(data);
     } catch (err) {
       console.error(err);
